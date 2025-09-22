@@ -1,0 +1,10 @@
+{
+    "name": "Jungle.Catalog.Editor",
+    "references": [
+        "GUID:a5c232d187614bccae5d97171216f62f",
+        "GUID:752582025b0f4e445a84406fdfe704b3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}
