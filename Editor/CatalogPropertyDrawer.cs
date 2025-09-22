@@ -28,7 +28,7 @@ namespace Jungle.Catalog.Editor
             var catalogPropertyPath = property.propertyPath;
             var root = GetRootTemplate().CloneTree();
 
-            JungleStyling.Apply(root);
+            ApplyStylingIfAvailable(root);
 
             var foldout = root.Q<Foldout>("catalog-foldout");
             if (foldout == null)
@@ -86,6 +86,32 @@ namespace Jungle.Catalog.Editor
             root.TrackPropertyValue(entriesPropertyCopy, _ => RefreshEntries());
 
             return root;
+        }
+
+        private static void ApplyStylingIfAvailable(VisualElement root)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var stylingType = assembly.GetType("Jungle.Editor.JungleStyling");
+                if (stylingType == null)
+                {
+                    continue;
+                }
+
+                var applyMethod = stylingType.GetMethod(
+                    "Apply",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                    null,
+                    new[] { typeof(VisualElement) },
+                    null);
+                if (applyMethod == null)
+                {
+                    continue;
+                }
+
+                applyMethod.Invoke(null, new object[] { root });
+                return;
+            }
         }
 
         private static VisualTreeAsset GetRootTemplate()
