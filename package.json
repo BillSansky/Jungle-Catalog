@@ -1,0 +1,19 @@
+{
+  "name": "jungle.catalog",
+  "displayName": "Jungle Catalog",
+  "description": "Runtime catalog framework for the Jungle ecosystem with data lookup utilities.",
+  "version": "0.1.0",
+  "unity": "2021.3",
+  "unityRelease": "0f1",
+  "dependencies": {
+    "jungle.core": "1.0.0"
+  },
+  "keywords": [
+    "jungle",
+    "catalog",
+    "data"
+  ],
+  "author": {
+    "name": "Jungle Collective"
+  }
+}
