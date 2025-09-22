@@ -11,6 +11,15 @@ namespace Jungle.Catalog.Implementations
         
         public override Type AssociatedType => typeof(T);
 
-        public abstract IEnumerable<T> TypedValues { get; }
+        public override IEnumerable<object> Values
+        {
+            get
+            {
+                foreach (var value in values)
+                {
+                    yield return value;
+                }
+            }
+        }
     }
 }
