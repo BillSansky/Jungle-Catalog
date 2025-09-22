@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements">
+    <ui:VisualElement class="jungle-catalog__root">
+        <ui:Foldout name="catalog-foldout" class="jungle-catalog__foldout" value="true">
+            <ui:VisualElement name="entries-container" class="jungle-catalog__entries" />
+            <ui:Button name="add-entry-button" text="Add Entry" class="jungle-btn--ghost jungle-catalog__add-button" />
+        </ui:Foldout>
+    </ui:VisualElement>
+</ui:UXML>

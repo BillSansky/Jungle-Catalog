@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements">
+    <ui:VisualElement class="jungle-card jungle-catalog__entry">
+        <ui:VisualElement class="jungle-card__row jungle-catalog__entry-header">
+            <ui:Label name="entry-label" class="pkg-title jungle-catalog__entry-title" text="Entry" />
+            <ui:Button name="remove-entry-button" text="Remove" class="jungle-btn--ghost jungle-catalog__remove-button" />
+        </ui:VisualElement>
+        <ui:VisualElement name="entry-content" class="jungle-card__main jungle-catalog__entry-content" />
+    </ui:VisualElement>
+</ui:UXML>

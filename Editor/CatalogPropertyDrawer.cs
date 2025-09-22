@@ -2,99 +2,181 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
+using Jungle.Editor;
 
 namespace Jungle.Catalog.Editor
 {
     [CustomPropertyDrawer(typeof(Catalog))]
     public class CatalogPropertyDrawer : PropertyDrawer
     {
-        private readonly Dictionary<string, float> elementHeightCache = new();
+        private const string TemplatePath = "Packages/jungle.catalog/Editor/Resources/CatalogPropertyDrawer.uxml";
+        private const string EntryTemplatePath = "Packages/jungle.catalog/Editor/Resources/CatalogPropertyEntry.uxml";
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        private static VisualTreeAsset rootTemplate;
+        private static VisualTreeAsset entryTemplate;
+
+        public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
-            EditorGUI.BeginProperty(position, label, property);
-
-            var foldoutRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label, true);
-
-            if (!property.isExpanded)
+            if (property == null)
             {
-                EditorGUI.EndProperty();
-                return;
+                throw new ArgumentNullException(nameof(property));
             }
 
-            var entriesProperty = property.FindPropertyRelative("entries");
-            var contentRect = EditorGUI.IndentedRect(new Rect(position.x, foldoutRect.yMax + EditorGUIUtility.standardVerticalSpacing, position.width, position.height - EditorGUIUtility.singleLineHeight));
+            var catalogPropertyPath = property.propertyPath;
+            var root = GetRootTemplate().CloneTree();
 
-            var y = contentRect.y;
-            var boxPadding = 4f;
+            JungleStyling.Apply(root);
 
-            for (var i = 0; i < entriesProperty.arraySize; i++)
+            var foldout = root.Q<Foldout>("catalog-foldout");
+            if (foldout == null)
             {
-                var entryProperty = entriesProperty.GetArrayElementAtIndex(i);
-                var propertyHeight = EditorGUI.GetPropertyHeight(entryProperty, GUIContent.none, true);
-                elementHeightCache[entryProperty.propertyPath] = propertyHeight;
+                throw new InvalidOperationException("CatalogPropertyDrawer.uxml is missing the 'catalog-foldout' element.");
+            }
 
-                var boxHeight = propertyHeight + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing * 2f + boxPadding * 2f;
-                var boxRect = new Rect(contentRect.x, y, contentRect.width, boxHeight);
-                GUI.Box(boxRect, GUIContent.none, EditorStyles.helpBox);
+            foldout.text = property.displayName;
+            foldout.SetValueWithoutNotify(property.isExpanded);
+            foldout.RegisterValueChangedCallback(evt => property.isExpanded = evt.newValue);
 
-                var labelRect = new Rect(boxRect.x + boxPadding, boxRect.y + boxPadding, boxRect.width - boxPadding * 2f - 20f, EditorGUIUtility.singleLineHeight);
-                EditorGUI.LabelField(labelRect, GetEntryLabel(entryProperty), EditorStyles.boldLabel);
+            var entriesContainer = root.Q<VisualElement>("entries-container");
+            if (entriesContainer == null)
+            {
+                throw new InvalidOperationException("CatalogPropertyDrawer.uxml is missing the 'entries-container' element.");
+            }
 
-                var removeRect = new Rect(boxRect.xMax - boxPadding - 18f, boxRect.y + boxPadding, 18f, EditorGUIUtility.singleLineHeight);
-                if (GUI.Button(removeRect, EditorGUIUtility.IconContent("Toolbar Minus"), EditorStyles.miniButton))
+            var addButton = root.Q<Button>("add-entry-button");
+            if (addButton == null)
+            {
+                throw new InvalidOperationException("CatalogPropertyDrawer.uxml is missing the 'add-entry-button' element.");
+            }
+
+            var serializedObject = property.serializedObject;
+            var entriesProperty = property.FindPropertyRelative("entries");
+            if (entriesProperty == null)
+            {
+                throw new InvalidOperationException("Catalog property is missing the 'entries' field.");
+            }
+
+            var entriesPropertyCopy = entriesProperty.Copy();
+
+            void RefreshEntries()
+            {
+                serializedObject.Update();
+                var currentCatalogProperty = serializedObject.FindProperty(catalogPropertyPath);
+                if (currentCatalogProperty == null)
                 {
-                    RemoveEntry(property.serializedObject, entriesProperty.propertyPath, i);
-                    EditorGUI.EndProperty();
-                    return;
+                    throw new InvalidOperationException($"Unable to find catalog property at path '{catalogPropertyPath}'.");
                 }
 
-                var fieldRect = new Rect(boxRect.x + boxPadding, labelRect.yMax + EditorGUIUtility.standardVerticalSpacing, boxRect.width - boxPadding * 2f, propertyHeight);
-                EditorGUI.PropertyField(fieldRect, entryProperty, GUIContent.none, true);
-
-                y += boxHeight + EditorGUIUtility.standardVerticalSpacing;
-            }
-
-            var buttonRect = new Rect(contentRect.x, y, 24f, EditorGUIUtility.singleLineHeight);
-            if (GUI.Button(buttonRect, EditorGUIUtility.IconContent("Toolbar Plus"), EditorStyles.miniButton))
-            {
-                ShowAddEntryMenu(property.serializedObject, entriesProperty.propertyPath);
-            }
-
-            EditorGUI.EndProperty();
-        }
-
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-        {
-            var height = EditorGUIUtility.singleLineHeight;
-            if (!property.isExpanded)
-            {
-                return height;
-            }
-
-            height += EditorGUIUtility.standardVerticalSpacing;
-
-            var entriesProperty = property.FindPropertyRelative("entries");
-            for (var i = 0; i < entriesProperty.arraySize; i++)
-            {
-                var entryProperty = entriesProperty.GetArrayElementAtIndex(i);
-                if (!elementHeightCache.TryGetValue(entryProperty.propertyPath, out var propertyHeight))
+                var currentEntriesProperty = currentCatalogProperty.FindPropertyRelative("entries");
+                if (currentEntriesProperty == null)
                 {
-                    propertyHeight = EditorGUI.GetPropertyHeight(entryProperty, GUIContent.none, true);
-                    elementHeightCache[entryProperty.propertyPath] = propertyHeight;
+                    throw new InvalidOperationException("Catalog property does not contain an 'entries' array.");
                 }
 
-                var boxHeight = propertyHeight + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing * 2f + 8f;
-                height += boxHeight + EditorGUIUtility.standardVerticalSpacing;
+                RebuildEntries(entriesContainer, serializedObject, currentEntriesProperty, RefreshEntries);
             }
 
-            height += EditorGUIUtility.singleLineHeight;
-            return height;
+            addButton.clicked += () => ShowAddEntryMenu(serializedObject, entriesProperty.propertyPath, RefreshEntries);
+
+            RefreshEntries();
+
+            root.TrackPropertyValue(entriesPropertyCopy, _ => RefreshEntries());
+
+            return root;
         }
 
-        private void ShowAddEntryMenu(SerializedObject serializedObject, string entriesPropertyPath)
+        private static VisualTreeAsset GetRootTemplate()
+        {
+            if (rootTemplate == null)
+            {
+                rootTemplate = LoadTemplate(TemplatePath);
+            }
+
+            return rootTemplate;
+        }
+
+        private static VisualTreeAsset GetEntryTemplate()
+        {
+            if (entryTemplate == null)
+            {
+                entryTemplate = LoadTemplate(EntryTemplatePath);
+            }
+
+            return entryTemplate;
+        }
+
+        private static VisualTreeAsset LoadTemplate(string path)
+        {
+            var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(path);
+            if (template == null)
+            {
+                throw new InvalidOperationException($"Unable to load UXML template at path '{path}'.");
+            }
+
+            return template;
+        }
+
+        private void RebuildEntries(
+            VisualElement container,
+            SerializedObject serializedObject,
+            SerializedProperty entriesProperty,
+            Action refreshCallback)
+        {
+            container.Clear();
+
+            for (var index = 0; index < entriesProperty.arraySize; index++)
+            {
+                var entryProperty = entriesProperty.GetArrayElementAtIndex(index);
+                container.Add(CreateEntryElement(serializedObject, entriesProperty.propertyPath, entryProperty, index, refreshCallback));
+            }
+        }
+
+        private VisualElement CreateEntryElement(
+            SerializedObject serializedObject,
+            string entriesPropertyPath,
+            SerializedProperty entryProperty,
+            int index,
+            Action refreshCallback)
+        {
+            var element = GetEntryTemplate().CloneTree();
+
+            var headerLabel = element.Q<Label>("entry-label");
+            if (headerLabel == null)
+            {
+                throw new InvalidOperationException("CatalogPropertyEntry.uxml is missing the 'entry-label' element.");
+            }
+
+            headerLabel.text = GetEntryLabel(entryProperty);
+
+            var removeButton = element.Q<Button>("remove-entry-button");
+            if (removeButton == null)
+            {
+                throw new InvalidOperationException("CatalogPropertyEntry.uxml is missing the 'remove-entry-button' element.");
+            }
+
+            removeButton.clicked += () =>
+            {
+                RemoveEntry(serializedObject, entriesPropertyPath, index);
+                refreshCallback();
+            };
+
+            var contentContainer = element.Q<VisualElement>("entry-content");
+            if (contentContainer == null)
+            {
+                throw new InvalidOperationException("CatalogPropertyEntry.uxml is missing the 'entry-content' element.");
+            }
+
+            var entryField = new PropertyField(entryProperty) { label = string.Empty };
+            entryField.BindProperty(entryProperty);
+            contentContainer.Add(entryField);
+
+            return element;
+        }
+
+        private void ShowAddEntryMenu(SerializedObject serializedObject, string entriesPropertyPath, Action refreshCallback)
         {
             var menu = new GenericMenu();
             var entryTypes = TypeCache.GetTypesDerivedFrom<CatalogEntry>()
@@ -111,7 +193,11 @@ namespace Jungle.Catalog.Editor
                 foreach (var entryType in entryTypes)
                 {
                     var content = new GUIContent(BuildMenuLabel(entryType));
-                    menu.AddItem(content, false, () => AddEntry(serializedObject, entriesPropertyPath, entryType));
+                    menu.AddItem(content, false, () =>
+                    {
+                        AddEntry(serializedObject, entriesPropertyPath, entryType);
+                        refreshCallback();
+                    });
                 }
             }
 
@@ -134,6 +220,11 @@ namespace Jungle.Catalog.Editor
             serializedObject.Update();
 
             var entriesProperty = serializedObject.FindProperty(entriesPropertyPath);
+            if (entriesProperty == null)
+            {
+                throw new InvalidOperationException("Failed to locate entries property when adding a catalog entry.");
+            }
+
             var newIndex = entriesProperty.arraySize;
             entriesProperty.arraySize++;
 
@@ -149,13 +240,18 @@ namespace Jungle.Catalog.Editor
             serializedObject.Update();
 
             var entriesProperty = serializedObject.FindProperty(entriesPropertyPath);
+            if (entriesProperty == null)
+            {
+                throw new InvalidOperationException("Failed to locate entries property when removing a catalog entry.");
+            }
+
             if (index >= entriesProperty.arraySize)
             {
-                serializedObject.ApplyModifiedProperties();
-                return;
+                throw new ArgumentOutOfRangeException(nameof(index), index, "Catalog entry index is out of range.");
             }
 
             entriesProperty.DeleteArrayElementAtIndex(index);
+
             if (index < entriesProperty.arraySize)
             {
                 entriesProperty.DeleteArrayElementAtIndex(index);
