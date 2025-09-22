@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Octoputs.Utils
+namespace Jungle.Catalog
 {
     [CreateAssetMenu(fileName = "New Catalog Key", menuName = "Octoputs/Catalog Key")]
     public class CatalogKey : ScriptableObject, IEquatable<CatalogKey>

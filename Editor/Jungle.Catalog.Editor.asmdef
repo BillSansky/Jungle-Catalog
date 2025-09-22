@@ -1,10 +1,19 @@
 {
     "name": "Jungle.Catalog.Editor",
+    "rootNamespace": "",
     "references": [
-        "GUID:a5c232d187614bccae5d97171216f62f",
-        "GUID:752582025b0f4e445a84406fdfe704b3"
+        "GUID:833938c1733e4aa2a4271eada1c0155c",
+        "GUID:aaab3b09731b41479704a6d1e6d33be0"
     ],
     "includePlatforms": [
         "Editor"
-    ]
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
