@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Jungle.Catalog
 {
-    [CreateAssetMenu(fileName = "New Catalog Key", menuName = "Octoputs/Catalog Key")]
+    [CreateAssetMenu(fileName = "New Catalog Key", menuName = "Jungle/Catalog Key")]
     public class CatalogKey : ScriptableObject, IEquatable<CatalogKey>
     {
         [SerializeField] private string typeName = "UnityEngine.Object";

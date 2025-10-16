@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jungle.Attributes;
 using UnityEngine;
 
 namespace Jungle.Catalog
@@ -8,7 +9,7 @@ namespace Jungle.Catalog
     [Serializable]
     public class Catalog
     {
-        [SerializeReference] private List<CatalogEntry> entries = new();
+        [SerializeReference][JungleClassSelection] private List<CatalogEntry> entries = new();
 
         private Dictionary<CatalogKey, CatalogEntry> catalogCache;
         private bool cacheNeedsRefresh = true;
